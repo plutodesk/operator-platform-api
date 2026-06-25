@@ -20,3 +20,4 @@ JWT_SECRET: change-me
 
 # Copy to conf.yaml and fill in secrets locally. Do not commit conf.yaml.
 GC_KEY: {}
+BUCKET: plutodesk-jigsaw
