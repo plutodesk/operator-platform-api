@@ -3,3 +3,5 @@
 
 from .category import *
 from .user import *
+from .tag import *
+from .admin_user import *

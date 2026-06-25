@@ -20,6 +20,11 @@ HANDLERS = [
     (r'/cms/v1/logout', LogoutHandler),
 
     (r'/cms/v1/country', CountryHandler),
+    (r'/cms/v1/tag/(\w+)', TagHandler),
+    (r'/cms/v1/tag', TagHandler),
+    (r'/cms/v1/user/options', UserOptionsHandler),
+    (r'/cms/v1/user/(\w+)', AdminUserHandler),
+    (r'/cms/v1/user', AdminUserHandler),
     (r'/cms/v1/category/(\w+)', CategoryHandler),
     (r'/cms/v1/category', CategoryHandler),
     (r'/cms/v1/sort/category', CategorySortHandler),

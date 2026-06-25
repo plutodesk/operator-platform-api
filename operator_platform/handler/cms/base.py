@@ -65,6 +65,11 @@ class BaseHandler(UACHandler):
         self.set_status(204)
         self.finish(None)
 
+    def require_admin(self):
+        role = (self.current_user or {}).get('role', 'user')
+        if role != 'admin':
+            raise HTTPError(403, 'Forbidden')
+
     def prepare(self):
         if not self.current_user:
             self.current_user = self.get_current_user()
