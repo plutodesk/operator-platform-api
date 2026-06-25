@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV_PYTHON="${SCRIPT_DIR}/.venv/bin/python"
+
+if [ -x "$VENV_PYTHON" ] && "$VENV_PYTHON" -c "import seal" >/dev/null 2>&1; then
+    PYTHON="$VENV_PYTHON"
+else
+    PYTHON=python3
+fi
+
+while [ 1 ]
+do
+    if [ "$1" = "cms" ]; then
+        echo "starting..."
+        "$PYTHON" -u -m operator_platform.handler.cms.index
+    else
+        echo "starting..."
+        "$PYTHON" -u -m operator_platform.index
+    fi
+    for((i=1;i<=4;i++));do echo -n "$i ";sleep 1;done
+done

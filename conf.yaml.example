@@ -1,0 +1,22 @@
+LOCAL: false
+DEBUG: true
+PORT: 20010
+MONGO_DB: operator_platform
+REDIS_URL: redis://localhost:6379/6
+REDIS_KWARGS: {"decode_responses": true}
+MONGO_MAP:
+  '': 'mongodb://localhost:27017'
+  'operator_platform': 'mongodb://localhost:27017'
+
+MONGO_URL: mongodb://localhost:27017
+CDN_URL: https://jigsaw-cdn.plutodesk.com/
+OAUTH_CLIENT_ID: your-google-oauth-client-id.apps.googleusercontent.com
+OAUTH_EMAIL_DOMAIN: your-company.com
+
+APPLE_SUBSCRIPTION_KEY:
+PUB_KEY:
+APPLE_KEY_ID:
+JWT_SECRET: change-me
+
+# Copy to conf.yaml and fill in secrets locally. Do not commit conf.yaml.
+GC_KEY: {}

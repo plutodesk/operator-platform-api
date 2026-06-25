@@ -1,0 +1,76 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*$py.class
+
+# vim
+*.swp
+*.swo
+
+# C extensions
+*.so
+.idea/
+.vscode/
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+*.pot
+
+# logs
+*.log
+
+# dotenv
+.env
+.env.*
+
+# virtualenv
+.venv/
+venv/
+ENV/
+
+# Mac OS
+.DS_Store
+
+# Local / secret config (never commit real conf.yaml)
+conf.yaml
+conf.yaml-copy.local
+conf.yaml.*
+!conf.yaml.example
+
+# Credentials & keys
+client_secret*.json
+*credentials*.json
+*service-account*.json
+*.pem
+*.key

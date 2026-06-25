@@ -1,0 +1,10 @@
+#!/bin/bash
+if [ "$1" = "serve" ]; then
+    echo "starting client api...."
+    exec python -u -m operator_platform.index
+elif [ "$1" = "cms" ]; then
+    echo "starting cms api...."
+    exec python -u -m operator_platform.handler.cms.index
+else
+    exec "$@"
+fi
