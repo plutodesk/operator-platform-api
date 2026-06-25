@@ -15,5 +15,12 @@ class User(BaseMongo):
         'name': str,
         'avatar': str,
         'email': str,
+        'role': str,
+        'active': bool,
         'c_time': int,
+    }
+
+    default = {
+        'role': 'user',
+        'active': True,
     }
