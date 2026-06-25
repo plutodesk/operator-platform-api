@@ -17,8 +17,6 @@ STATICS = os.path.join(os.path.dirname(__file__), 'static')
 HANDLERS = [
     (r'/_/ping', PingHandler),
     (r'/static/(.+)', StaticFileHandler, {'path': STATICS}),
-
-    (r'/api/v1/category', CategoryHandler),
 ]
 
 if options.DEBUG:

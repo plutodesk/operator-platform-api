@@ -28,9 +28,6 @@ HANDLERS = [
     (r'/cms/v1/user/options', UserOptionsHandler),
     (r'/cms/v1/user/(\w+)', AdminUserHandler),
     (r'/cms/v1/user', AdminUserHandler),
-    (r'/cms/v1/category/(\w+)', CategoryHandler),
-    (r'/cms/v1/category', CategoryHandler),
-    (r'/cms/v1/sort/category', CategorySortHandler),
 ]
 
 SETTINGS = {

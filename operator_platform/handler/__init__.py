@@ -3,7 +3,10 @@
 
 
 from tornado.web import RequestHandler
-from .category import *
+
+__all__ = [
+    'PingHandler',
+]
 
 
 class PingHandler(RequestHandler):
