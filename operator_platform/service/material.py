@@ -18,7 +18,7 @@ __all__ = [
 MATERIAL_FIELDS = [
     'name', 'product', 'material_type', 'priority', 'creative_type',
     'creative_user_ids', 'producer_user_ids', 'tag_ids', 'task_description',
-    'material_url', 'upload_path', 'production_status',
+    'material_url', 'upload_path', 'upload_paths', 'production_status',
 ]
 
 
@@ -77,12 +77,23 @@ class MaterialService(object):
         }
 
     @classmethod
+    def _normalize_upload_fields(cls, fields):
+        paths = fields.get('upload_paths')
+        if paths is None and fields.get('upload_path'):
+            paths = [fields['upload_path']]
+        elif paths is None:
+            paths = []
+        fields['upload_paths'] = [path for path in paths if path]
+        fields['upload_path'] = fields['upload_paths'][0] if fields['upload_paths'] else ''
+        return fields
+
+    @classmethod
     def _extract_fields(cls, item):
         data = {}
         for key in MATERIAL_FIELDS:
             if key in item:
                 data[key] = item[key]
-        return data
+        return cls._normalize_upload_fields(data)
 
     @classmethod
     async def _create_material(cls, item, today):
@@ -104,6 +115,7 @@ class MaterialService(object):
             task_description=fields.get('task_description') or {'text': '', 'images': []},
             material_url=fields.get('material_url') or '',
             upload_path=fields.get('upload_path') or '',
+            upload_paths=fields.get('upload_paths') or [],
             production_status=status_patch['production_status'],
             started_date=status_patch['started_date'],
             completed_date=status_patch['completed_date'],
@@ -185,11 +197,11 @@ class MaterialService(object):
                     'message': 'Params Error',
                 })
                 continue
-            if existing.production_status == 'completed':
+            if existing.production_status != 'pending':
                 conflicts.append({
                     'id': material_id,
                     'action': 'delete',
-                    'message': '已完成任务不可删除',
+                    'message': '仅未制作任务可删除',
                     'serverMaterial': existing.info,
                 })
                 continue

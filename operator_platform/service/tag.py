@@ -4,6 +4,7 @@
 
 from operator_platform.db import Tag
 from operator_platform.error import ParamsError
+from operator_platform.libs.color_palette import assign_color
 from seal.utils.tools import time10
 
 __all__ = [
@@ -25,7 +26,12 @@ class TagService(object):
             raise ParamsError
         if await Tag.find_one({'name': name}):
             raise ParamsError
-        tag = Tag(name=name, color=color or '', sort=sort or 0, c_time=time10())
+        tag = Tag(
+            name=name,
+            color=(color or assign_color(name)),
+            sort=sort or 0,
+            c_time=time10(),
+        )
         await tag.save()
         return tag.info
 
