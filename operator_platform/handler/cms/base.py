@@ -18,6 +18,7 @@ __all__ = [
 ]
 
 from operator_platform.service import UserService
+from operator_platform.service.cdn import effective_cdn_url
 
 
 class UACHandler(APIHandler):
@@ -84,17 +85,22 @@ class MeHandler(BaseHandler):
         if options.LOCAL:
             self.current_user = await UserService.login(self.current_user)
             user = self.login(self.current_user)
+            user['cdn_url'] = effective_cdn_url()
+            user['local'] = True
             self.render(user)
         else:
             user = self.current_user
             if await UserService.is_valid(user):
+                user = dict(user)
+                user['cdn_url'] = effective_cdn_url()
                 self.render(user)
             else:
                 raise HTTPError(401, 'Not Login')
 
     def prepare(self):
         if options.LOCAL:
-            self.current_user = self.debug_user
+            cookie_user = self.get_current_user()
+            self.current_user = cookie_user or self.debug_user
         return super().prepare()
 
 

@@ -6,3 +6,4 @@ from .tag import *
 from .admin_user import *
 from .material import *
 from .country import *
+from .debug import *

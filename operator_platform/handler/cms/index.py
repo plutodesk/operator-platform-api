@@ -11,6 +11,7 @@ from tornado.httpserver import HTTPServer
 
 from operator_platform.handler.cms import *
 from operator_platform.handler.cms.base import MeHandler, LogoutHandler
+from operator_platform.handler.cms.debug import DebugLoginHandler, DebugUsersHandler
 
 logger = logging.getLogger('tornado.general')
 STATICS = os.path.join(os.path.dirname(__file__), 'static')
@@ -29,6 +30,11 @@ HANDLERS = [
     (r'/cms/v1/user/(\w+)', AdminUserHandler),
     (r'/cms/v1/user', AdminUserHandler),
 ]
+if options.LOCAL:
+    HANDLERS.extend([
+        (r'/cms/v1/debug/login', DebugLoginHandler),
+        (r'/cms/v1/debug/users', DebugUsersHandler),
+    ])
 
 SETTINGS = {
     'debug': options.DEBUG,
