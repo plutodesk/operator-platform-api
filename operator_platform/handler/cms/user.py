@@ -8,6 +8,7 @@ from google.auth.transport import requests
 
 from operator_platform.handler.cms.base import UACHandler
 from operator_platform.service import UserService
+from operator_platform.service.cdn import effective_cdn_url
 from operator_platform.error import ParamsError
 
 __all__ = [
@@ -48,6 +49,7 @@ class OAuth2LoginHandler(UACHandler):
                 }
             user = await UserService.login(user)
             user = self.login(user)
+            user['cdn_url'] = effective_cdn_url()
         else:
             raise ParamsError
         self.render(user)
