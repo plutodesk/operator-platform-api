@@ -40,6 +40,40 @@ SAMPLE_MATERIALS = [
     ('游戏过程 J', 'Color Master', 'pending', 'P2', '2026-06-15', '', ''),
 ]
 
+DEFAULT_CHANNEL_USAGE = {'google': False, 'facebook': False, 'unity': False}
+
+ADS_META_SAMPLES = {
+    '万圣节 C': {
+        'language': 'en',
+        'size': '9x16',
+        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'channel_usage': {'google': True, 'facebook': False, 'unity': False},
+    },
+    '原创图片 F': {
+        'language': 'en',
+        'size': '9x16',
+        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'channel_usage': dict(DEFAULT_CHANNEL_USAGE),
+    },
+    '节日限定 I': {
+        'language': 'en',
+        'size': '9x16',
+        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'channel_usage': dict(DEFAULT_CHANNEL_USAGE),
+    },
+}
+
+
+def apply_ads_meta(material):
+    meta = ADS_META_SAMPLES.get(material.name)
+    if not meta:
+        return False
+    material.language = meta['language']
+    material.size = meta['size']
+    material.ads_operator_ids = list(meta['ads_operator_ids'])
+    material.channel_usage = dict(meta['channel_usage'])
+    return True
+
 
 async def seed_tags():
     now = time10()
@@ -97,6 +131,7 @@ async def seed_materials():
             c_time=now + (len(SAMPLE_MATERIALS) - index),
             u_time=now + (len(SAMPLE_MATERIALS) - index),
         )
+        apply_ads_meta(material)
         await material.save()
 
 
@@ -124,12 +159,25 @@ async def refresh_material_dates():
     print(f'refreshed dates on {len(materials)} materials')
 
 
-async def main(refresh_dates=False):
+async def refresh_material_ads_meta():
+    """刷新已有 completed 样例的 language/size/投放员/渠道字段。"""
+    materials = await Material.query({})
+    count = 0
+    for material in materials:
+        if apply_ads_meta(material):
+            await material.save()
+            count += 1
+    print(f'refreshed ads meta on {count} materials')
+
+
+async def main(refresh_dates=False, refresh_ads_meta=False):
     await seed_tags()
     await seed_users()
     await seed_materials()
     if refresh_dates:
         await refresh_material_dates()
+    if refresh_ads_meta:
+        await refresh_material_ads_meta()
     print('seed complete')
 
 
@@ -140,5 +188,13 @@ if __name__ == '__main__':
         action='store_true',
         help='refresh started/completed/created dates on existing materials',
     )
+    parser.add_argument(
+        '--refresh-ads-meta',
+        action='store_true',
+        help='refresh language/size/ads_operator_ids/channel_usage on sample completed materials',
+    )
     args = parser.parse_args()
-    asyncio.get_event_loop().run_until_complete(main(refresh_dates=args.refresh_dates))
+    asyncio.get_event_loop().run_until_complete(main(
+        refresh_dates=args.refresh_dates,
+        refresh_ads_meta=args.refresh_ads_meta,
+    ))
