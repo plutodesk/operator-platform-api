@@ -62,6 +62,9 @@ ENV/
 # Mac OS
 .DS_Store
 
+# Local upload artifacts (dev only)
+operator_platform/static/uploads/
+
 # Local / secret config (never commit real conf.yaml)
 conf.yaml
 conf.yaml-copy.local
