@@ -32,6 +32,12 @@ class MaterialHandler(BaseHandler):
         self.add_query_argument('producer_user_ids', str, False)
         self.add_query_argument('creative_user_ids', str, False)
         self.add_query_argument('material_type', str, False)
+        self.add_query_argument('involvement', str, False)
+        self.add_query_argument('language', str, False)
+        self.add_query_argument('size', str, False)
+        self.add_query_argument('completed_date_from', str, False)
+        self.add_query_argument('completed_date_to', str, False)
+        self.add_query_argument('channel', str, False)
         result = await MaterialService.list_materials(
             page=self.query.page or 1,
             page_size=self.query.page_size or 20,
@@ -42,6 +48,13 @@ class MaterialHandler(BaseHandler):
             producer_user_ids=_split_ids(self.query.producer_user_ids),
             creative_user_ids=_split_ids(self.query.creative_user_ids),
             material_type=self.query.material_type,
+            involvement=self.query.involvement,
+            language=self.query.language,
+            size=self.query.size,
+            completed_date_from=self.query.completed_date_from,
+            completed_date_to=self.query.completed_date_to,
+            channels=_split_ids(self.query.channel),
+            current_user_id=self.current_user['user_id'],
         )
         self.render({
             'materialList': result['items'],

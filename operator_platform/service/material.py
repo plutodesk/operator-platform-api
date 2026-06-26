@@ -24,6 +24,12 @@ MATERIAL_FIELDS = [
 
 class MaterialService(object):
 
+    INVOLVEMENT_MAP = {
+        'producer': 'producer_user_ids',
+        'creative': 'creative_user_ids',
+        'ads_operator': 'ads_operator_ids',
+    }
+
     @classmethod
     def _object_id(cls, material_id):
         try:
@@ -36,7 +42,7 @@ class MaterialService(object):
         return date.today().strftime('%Y-%m-%d')
 
     @classmethod
-    def _build_spec(cls, filters):
+    def _build_spec(cls, filters, current_user_id=None):
         spec = {}
         if filters.get('keyword'):
             spec['name'] = {'$regex': filters['keyword'], '$options': 'i'}
@@ -52,15 +58,35 @@ class MaterialService(object):
             spec['producer_user_ids'] = {'$in': filters['producer_user_ids']}
         if filters.get('creative_user_ids'):
             spec['creative_user_ids'] = {'$in': filters['creative_user_ids']}
+        involvement = filters.get('involvement')
+        if involvement in cls.INVOLVEMENT_MAP and current_user_id:
+            spec[cls.INVOLVEMENT_MAP[involvement]] = current_user_id
+        elif filters.get('ads_operator_ids'):
+            spec['ads_operator_ids'] = {'$in': filters['ads_operator_ids']}
+        if filters.get('language'):
+            spec['language'] = filters['language']
+        if filters.get('size'):
+            spec['size'] = filters['size']
+        channels = filters.get('channels') or []
+        for ch in channels:
+            spec[f'channel_usage.{ch}'] = True
+        date_from = filters.get('completed_date_from')
+        date_to = filters.get('completed_date_to')
+        if date_from or date_to:
+            spec['completed_date'] = {}
+            if date_from:
+                spec['completed_date']['$gte'] = date_from
+            if date_to:
+                spec['completed_date']['$lte'] = date_to
         return spec
 
     @classmethod
-    async def list_materials(cls, page=1, page_size=20, **filters):
+    async def list_materials(cls, page=1, page_size=20, current_user_id=None, **filters):
         page = max(int(page or 1), 1)
         page_size = int(page_size or 20)
         if page_size not in (20, 50, 100):
             page_size = 20
-        spec = cls._build_spec(filters)
+        spec = cls._build_spec(filters, current_user_id=current_user_id)
         total = await Material.count_documents(spec)
         skip = (page - 1) * page_size
         material_list = await Material.query(
