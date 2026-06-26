@@ -14,6 +14,7 @@ if sys.stdout.isatty():
     enable_pretty_logging()
 
 define('LOCAL', default=False, help="LOCAL")
+define('LOCAL_UPLOAD', default=None, help="Use local filesystem for uploads; defaults to LOCAL")
 define('DEBUG', default=False, help="Debug")
 define('PORT', default=20010, help="Port")
 define('CDN_URL', default='', help='Asset CDN base url')
