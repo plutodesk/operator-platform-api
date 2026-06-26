@@ -135,3 +135,15 @@ class UserService(object):
         if doc.active is False:
             return False
         return True
+
+    @classmethod
+    async def login_by_email(cls, email):
+        user = await User.find_one({'email': email, 'active': True})
+        if not user:
+            raise ParamsError
+        return user.info
+
+    @classmethod
+    async def list_active_users(cls):
+        users = await User.query({'active': True}, sort=[('email', 1)])
+        return [{'email': u.email, 'name': u.name, 'role': u.role} for u in users]
