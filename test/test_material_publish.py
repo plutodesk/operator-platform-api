@@ -36,6 +36,10 @@ def make_material(
     obj.upload_paths = []
     obj.started_date = started_date
     obj.completed_date = completed_date
+    obj.language = ''
+    obj.size = ''
+    obj.ads_operator_ids = []
+    obj.channel_usage = {'google': False, 'facebook': False, 'unity': False}
     obj.created_date = '2026-06-20'
     obj.c_time = 1
     obj.u_time = 1
@@ -144,3 +148,20 @@ class MaterialPublishTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result['succeeded']['updated'], [])
         self.assertEqual(result['conflicts'][0]['message'], 'Params Error')
+
+    async def test_publish_update_ads_fields(self):
+        m = make_material(version=1, production_status='completed')
+        m.language = ''
+        m.size = ''
+        m.ads_operator_ids = []
+        m.channel_usage = {'google': False, 'facebook': False, 'unity': False}
+        with patch('operator_platform.service.material.Material.find_one', new_callable=AsyncMock, return_value=m):
+            result = await MaterialService.publish(updates=[{
+                'id': m.id, 'version': 1,
+                'language': 'en', 'size': '9x16',
+                'ads_operator_ids': ['u1'],
+                'channel_usage': {'google': True, 'facebook': False, 'unity': False},
+            }])
+        self.assertEqual(result['conflicts'], [])
+        self.assertEqual(m.language, 'en')
+        self.assertTrue(m.channel_usage['google'])

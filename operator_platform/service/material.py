@@ -19,6 +19,7 @@ MATERIAL_FIELDS = [
     'name', 'product', 'material_type', 'priority', 'creative_type',
     'creative_user_ids', 'producer_user_ids', 'tag_ids', 'task_description',
     'material_url', 'upload_path', 'upload_paths', 'production_status',
+    'language', 'size', 'ads_operator_ids', 'channel_usage',
 ]
 
 
@@ -103,6 +104,13 @@ class MaterialService(object):
         }
 
     @classmethod
+    def _normalize_channel_usage(cls, value):
+        base = {'google': False, 'facebook': False, 'unity': False}
+        if isinstance(value, dict):
+            base.update({k: bool(value.get(k)) for k in base})
+        return base
+
+    @classmethod
     def _normalize_upload_fields(cls, fields):
         paths = fields.get('upload_paths')
         if paths is None and fields.get('upload_path'):
@@ -119,6 +127,8 @@ class MaterialService(object):
         for key in MATERIAL_FIELDS:
             if key in item:
                 data[key] = item[key]
+        if 'channel_usage' in data:
+            data['channel_usage'] = cls._normalize_channel_usage(data['channel_usage'])
         return cls._normalize_upload_fields(data)
 
     @classmethod
@@ -145,6 +155,10 @@ class MaterialService(object):
             production_status=status_patch['production_status'],
             started_date=status_patch['started_date'],
             completed_date=status_patch['completed_date'],
+            language=fields.get('language') or '',
+            size=fields.get('size') or '',
+            ads_operator_ids=fields.get('ads_operator_ids') or [],
+            channel_usage=cls._normalize_channel_usage(fields.get('channel_usage')),
             created_date=today,
             version=1,
             c_time=now,
