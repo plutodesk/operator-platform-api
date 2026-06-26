@@ -56,7 +56,7 @@ class MaterialHandler(BaseHandler):
             completed_date_to=self.query.completed_date_to,
             ads_operator_ids=_split_ids(self.query.ads_operator_ids),
             channels=_split_ids(self.query.channel),
-            current_user_id=self.current_user['user_id'],
+            current_user_id=self.current_user['id'],
         )
         self.render({
             'materialList': result['items'],

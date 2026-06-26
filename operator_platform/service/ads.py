@@ -15,7 +15,7 @@ __all__ = ['AdsService']
 class AdsService(object):
 
     @classmethod
-    async def publish_stub(cls, material_id, version, channel, user_id, language=None, size=None):
+    async def publish_stub(cls, material_id, version, channel, operator_id, language=None, size=None):
         if channel not in CHANNELS:
             raise ParamsError
         existing = await Material.find_one({'_id': MaterialService._object_id(material_id)})
@@ -35,8 +35,8 @@ class AdsService(object):
         usage[channel] = True
         existing.channel_usage = usage
         operators = list(existing.ads_operator_ids or [])
-        if user_id and user_id not in operators:
-            operators.append(user_id)
+        if operator_id and operator_id not in operators:
+            operators.append(operator_id)
         existing.ads_operator_ids = operators
         if language:
             existing.language = language

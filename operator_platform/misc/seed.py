@@ -42,35 +42,67 @@ SAMPLE_MATERIALS = [
 
 DEFAULT_CHANNEL_USAGE = {'google': False, 'facebook': False, 'unity': False}
 
+# creative / producer 存 Mongo User.id（与 UserMultiSelect、involvement 筛选一致）
+MATERIAL_ASSIGNMENTS = {
+    '春节素材 A': {'creative': ['alice@bidderdesk.com'], 'producer': ['bob@bidderdesk.com']},
+    '夏日活动 B': {'creative': ['carol@bidderdesk.com'], 'producer': ['alice@bidderdesk.com']},
+    '万圣节 C': {'creative': ['bob@bidderdesk.com'], 'producer': ['dave@bidderdesk.com']},
+    '试玩素材 D': {'creative': ['alice@bidderdesk.com'], 'producer': ['carol@bidderdesk.com']},
+    '迭代视频 E': {'creative': ['dave@bidderdesk.com'], 'producer': ['bob@bidderdesk.com']},
+    '原创图片 F': {'creative': ['alice@bidderdesk.com'], 'producer': ['bob@bidderdesk.com']},
+    'ASMR 素材 G': {'creative': ['carol@bidderdesk.com'], 'producer': ['dave@bidderdesk.com']},
+    '真人拍摄 H': {'creative': ['bob@bidderdesk.com'], 'producer': ['alice@bidderdesk.com']},
+    '节日限定 I': {'creative': ['alice@bidderdesk.com'], 'producer': ['carol@bidderdesk.com']},
+    '游戏过程 J': {'creative': ['dave@bidderdesk.com'], 'producer': ['bob@bidderdesk.com']},
+}
+
 ADS_META_SAMPLES = {
     '万圣节 C': {
         'language': 'en',
         'size': '9x16',
-        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'ads_operator_emails': ['alice@bidderdesk.com'],
         'channel_usage': {'google': True, 'facebook': False, 'unity': False},
     },
     '原创图片 F': {
         'language': 'en',
         'size': '9x16',
-        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'ads_operator_emails': ['alice@bidderdesk.com'],
         'channel_usage': dict(DEFAULT_CHANNEL_USAGE),
     },
     '节日限定 I': {
         'language': 'en',
         'size': '9x16',
-        'ads_operator_ids': ['manual:alice@bidderdesk.com'],
+        'ads_operator_emails': ['alice@bidderdesk.com'],
         'channel_usage': dict(DEFAULT_CHANNEL_USAGE),
     },
 }
 
 
-def apply_ads_meta(material):
+async def user_id_by_email():
+    users = await User.query({'active': True})
+    return {u.email: u.id for u in users}
+
+
+def _resolve_user_ids(emails, id_map):
+    return [id_map[email] for email in emails if email in id_map]
+
+
+def apply_assignments(material, id_map):
+    plan = MATERIAL_ASSIGNMENTS.get(material.name)
+    if not plan:
+        return False
+    material.creative_user_ids = _resolve_user_ids(plan.get('creative', []), id_map)
+    material.producer_user_ids = _resolve_user_ids(plan.get('producer', []), id_map)
+    return True
+
+
+def apply_ads_meta(material, id_map):
     meta = ADS_META_SAMPLES.get(material.name)
     if not meta:
         return False
     material.language = meta['language']
     material.size = meta['size']
-    material.ads_operator_ids = list(meta['ads_operator_ids'])
+    material.ads_operator_ids = _resolve_user_ids(meta.get('ads_operator_emails', []), id_map)
     material.channel_usage = dict(meta['channel_usage'])
     return True
 
@@ -108,6 +140,7 @@ async def seed_users():
 async def seed_materials():
     if await Material.count_documents({}) > 0:
         return
+    id_map = await user_id_by_email()
     now = time10()
     for index, row in enumerate(SAMPLE_MATERIALS):
         name, product, status, priority, created_date, started_date, completed_date = row
@@ -131,7 +164,8 @@ async def seed_materials():
             c_time=now + (len(SAMPLE_MATERIALS) - index),
             u_time=now + (len(SAMPLE_MATERIALS) - index),
         )
-        apply_ads_meta(material)
+        apply_assignments(material, id_map)
+        apply_ads_meta(material, id_map)
         await material.save()
 
 
@@ -161,21 +195,36 @@ async def refresh_material_dates():
 
 async def refresh_material_ads_meta():
     """刷新已有 completed 样例的 language/size/投放员/渠道字段。"""
+    id_map = await user_id_by_email()
     materials = await Material.query({})
     count = 0
     for material in materials:
-        if apply_ads_meta(material):
+        if apply_ads_meta(material, id_map):
             await material.save()
             count += 1
     print(f'refreshed ads meta on {count} materials')
 
 
-async def main(refresh_dates=False, refresh_ads_meta=False):
+async def refresh_material_assignments():
+    """刷新样例素材的创意人/制作人（Mongo User.id）。"""
+    id_map = await user_id_by_email()
+    materials = await Material.query({})
+    count = 0
+    for material in materials:
+        if apply_assignments(material, id_map):
+            await material.save()
+            count += 1
+    print(f'refreshed assignments on {count} materials')
+
+
+async def main(refresh_dates=False, refresh_ads_meta=False, refresh_assignments=False):
     await seed_tags()
     await seed_users()
     await seed_materials()
     if refresh_dates:
         await refresh_material_dates()
+    if refresh_assignments:
+        await refresh_material_assignments()
     if refresh_ads_meta:
         await refresh_material_ads_meta()
     print('seed complete')
@@ -193,8 +242,14 @@ if __name__ == '__main__':
         action='store_true',
         help='refresh language/size/ads_operator_ids/channel_usage on sample completed materials',
     )
+    parser.add_argument(
+        '--refresh-assignments',
+        action='store_true',
+        help='refresh creative_user_ids/producer_user_ids on sample materials',
+    )
     args = parser.parse_args()
     asyncio.get_event_loop().run_until_complete(main(
         refresh_dates=args.refresh_dates,
         refresh_ads_meta=args.refresh_ads_meta,
+        refresh_assignments=args.refresh_assignments,
     ))

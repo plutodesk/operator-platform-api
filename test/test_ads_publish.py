@@ -37,12 +37,12 @@ class AdsPublishStubTest(unittest.IsolatedAsyncioTestCase):
         with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m):
             result = await AdsService.publish_stub(
                 material_id=m.id, version=2, channel='google',
-                user_id='operator_1', language='en', size='9x16',
+                operator_id='507f1f77bcf86cd799439099', language='en', size='9x16',
             )
         self.assertEqual(result['api_status'], 'stub')
         self.assertIsNone(result['conflict'])
         self.assertTrue(result['material']['channel_usage']['google'])
-        self.assertIn('operator_1', m.ads_operator_ids)
+        self.assertIn('507f1f77bcf86cd799439099', m.ads_operator_ids)
         self.assertEqual(m.version, 3)
 
     async def test_reject_non_completed(self):

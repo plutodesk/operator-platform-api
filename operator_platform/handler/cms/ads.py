@@ -22,7 +22,7 @@ class AdsPublishHandler(BaseHandler):
             material_id=self.json.material_id,
             version=self.json.version,
             channel=self.json.channel,
-            user_id=self.current_user['user_id'],
+            operator_id=self.current_user['id'],
             language=self.json.language,
             size=self.json.size,
         )
