@@ -101,7 +101,15 @@ class MaterialPublishTest(unittest.IsolatedAsyncioTestCase):
             result = await MaterialService.publish(
                 deletes=[{'id': m.id, 'version': 1}],
             )
-        self.assertIn('已完成任务不可删除', result['conflicts'][0]['message'])
+        self.assertIn('仅未制作任务可删除', result['conflicts'][0]['message'])
+
+    async def test_b4b_delete_in_progress_rejected(self):
+        m = make_material(production_status='in_progress', version=1)
+        with patch('operator_platform.service.material.Material.find_one', new_callable=AsyncMock, return_value=m):
+            result = await MaterialService.publish(
+                deletes=[{'id': m.id, 'version': 1}],
+            )
+        self.assertIn('仅未制作任务可删除', result['conflicts'][0]['message'])
 
     async def test_b5_mixed_batch_partial_success(self):
         ok = make_material('507f1f77bcf86cd799439011', version=1)
