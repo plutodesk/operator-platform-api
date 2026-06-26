@@ -30,6 +30,10 @@ class Material(BaseMongo):
         'version': int,
         'c_time': int,
         'u_time': int,
+        'language': str,
+        'size': str,
+        'ads_operator_ids': list,
+        'channel_usage': dict,
     }
 
     default = {
@@ -44,4 +48,8 @@ class Material(BaseMongo):
         'started_date': '',
         'completed_date': '',
         'version': 1,
+        'language': '',
+        'size': '',
+        'ads_operator_ids': [],
+        'channel_usage': {'google': False, 'facebook': False, 'unity': False},
     }
