@@ -37,6 +37,7 @@ class MaterialHandler(BaseHandler):
         self.add_query_argument('size', str, False)
         self.add_query_argument('completed_date_from', str, False)
         self.add_query_argument('completed_date_to', str, False)
+        self.add_query_argument('ads_operator_ids', str, False)
         self.add_query_argument('channel', str, False)
         result = await MaterialService.list_materials(
             page=self.query.page or 1,
@@ -53,6 +54,7 @@ class MaterialHandler(BaseHandler):
             size=self.query.size,
             completed_date_from=self.query.completed_date_from,
             completed_date_to=self.query.completed_date_to,
+            ads_operator_ids=_split_ids(self.query.ads_operator_ids),
             channels=_split_ids(self.query.channel),
             current_user_id=self.current_user['user_id'],
         )
