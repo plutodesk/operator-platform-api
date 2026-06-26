@@ -21,6 +21,7 @@ HANDLERS = [
     (r'/cms/v1/logout', LogoutHandler),
 
     (r'/cms/v1/country', CountryHandler),
+    (r'/cms/v1/ads/publish', AdsPublishHandler),
     (r'/cms/v1/material/publish', MaterialPublishHandler),
     (r'/cms/v1/material', MaterialHandler),
     (r'/cms/v1/resource', ResourceHandler),
