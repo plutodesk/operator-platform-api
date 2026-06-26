@@ -1,4 +1,6 @@
-LOCAL: false
+# LOCAL: true  — 本地开发/CI：免 Google 登录，启用 /cms/v1/debug/login 多用户切换（Alice/Bob 协作冲突测试）
+# LOCAL: false — 生产/抽检：真实 Google OAuth，debug 路由返回 404
+LOCAL: true
 DEBUG: true
 PORT: 20010
 MONGO_DB: operator_platform
