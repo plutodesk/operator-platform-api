@@ -19,11 +19,15 @@ define('DEBUG', default=False, help="Debug")
 define('PORT', default=20010, help="Port")
 define('CDN_URL', default='', help='Asset CDN base url')
 define('OAUTH_CLIENT_ID', default='', help='Google OAuth Client ID')
+define('OAUTH_CLIENT_SECRET', default='', help='Google OAuth Client Secret')
 define('OAUTH_EMAIL_DOMAIN', default='', help='Allowed login email domain, empty = allow all')
 define('JWT_SECRET', default='change-me', help="JWT secret")
+define('CONFIG_ENCRYPTION_KEY', default='', help='Fernet key for encrypting token credentials in DB')
+define('COFIG_SECRET', default='', help='Deprecated alias for CONFIG_ENCRYPTION_KEY')
 define('GC_KEY', default={}, help='Google cloud service account json')
 define('BUCKET', default='', help='GCS bucket name')
-define('GOOGLE_ADS_CONFIG', default={}, help='Google Ads API oauth and account config')
+define('GOOGLE_ADS_CONFIG', default={}, help='Deprecated Google Ads config fallback')
+define('UNITY_CONFIG', default={}, help='Deprecated Unity config fallback')
 
 config_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__),
