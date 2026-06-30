@@ -35,6 +35,8 @@ class Material(BaseMongo):
         'ads_operator_ids': list,
         'channel_usage': dict,
         'google_ads_asset': str,
+        'unity_creative_id': str,
+        'platform_publish': dict,
     }
 
     default = {
@@ -54,4 +56,6 @@ class Material(BaseMongo):
         'ads_operator_ids': [],
         'channel_usage': {'google': False, 'facebook': False, 'unity': False},
         'google_ads_asset': '',
+        'unity_creative_id': '',
+        'platform_publish': {},
     }
