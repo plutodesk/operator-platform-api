@@ -19,7 +19,7 @@ MATERIAL_FIELDS = [
     'name', 'product', 'material_type', 'priority', 'creative_type',
     'creative_user_ids', 'producer_user_ids', 'tag_ids', 'task_description',
     'material_url', 'upload_path', 'upload_paths', 'production_status',
-    'language', 'size', 'ads_operator_ids', 'channel_usage',
+    'language', 'size', 'ads_operator_ids', 'channel_usage', 'google_ads_asset',
 ]
 
 
