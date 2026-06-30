@@ -19,6 +19,7 @@ from seal.conf import options
 
 from operator_platform.db.local_storage import UPLOAD_ROOT
 from operator_platform.error import ParamsError
+from operator_platform.service.ads_config import AdsConfigResolver
 from operator_platform.service.cdn import effective_cdn_url, use_local_upload
 
 __all__ = ['GoogleAdsService', 'GoogleAdsUploadError']
@@ -40,15 +41,13 @@ class GoogleAdsUploadError(Exception):
 class GoogleAdsService(object):
 
     @classmethod
-    def _ads_config(cls):
-        return getattr(options, 'GOOGLE_ADS_CONFIG', None) or {}
-
-    @classmethod
-    def _load_cfg(cls):
-        ads = cls._ads_config()
+    def _load_cfg(cls, cfg=None):
+        if cfg:
+            return cfg
+        ads = getattr(options, 'GOOGLE_ADS_CONFIG', None) or {}
         developer_token = (ads.get('DeveloperToken') or '').strip()
         refresh_token = (ads.get('RefreshToken') or '').strip()
-        client_secret = (ads.get('ClientSecret') or '').strip()
+        client_secret = (getattr(options, 'OAUTH_CLIENT_SECRET', None) or ads.get('ClientSecret') or '').strip()
         customer_id = str(ads.get('CustomerId') or '').replace('-', '').strip()
         client_id = (options.OAUTH_CLIENT_ID or '').strip()
         if not all([developer_token, refresh_token, client_secret, customer_id, client_id]):
@@ -340,8 +339,8 @@ class GoogleAdsService(object):
                 os.unlink(tmp_path)
 
     @classmethod
-    def _upload_material_sync(cls, material):
-        cfg = cls._load_cfg()
+    def _upload_material_sync(cls, material, cfg=None):
+        cfg = cls._load_cfg(cfg)
         access_token = cls._refresh_access_token(cfg)
         material_type = material.material_type or ''
         upload_path = cls._primary_upload_path(material)
@@ -368,13 +367,15 @@ class GoogleAdsService(object):
         raise ParamsError
 
     @classmethod
-    async def upload_material(cls, material):
+    async def upload_material(cls, material, cfg=None):
         try:
-            result = await asyncio.to_thread(cls._upload_material_sync, material)
+            if cfg is None:
+                cfg = await AdsConfigResolver.resolve_google(product=getattr(material, 'product', None))
+            result = await asyncio.to_thread(cls._upload_material_sync, material, cfg)
             logger.info('Google Ads upload ok material=%s result=%s', material.id, result.get('resource_name'))
             return result
-        except ParamsError:
-            raise
+        except ParamsError as exc:
+            raise GoogleAdsUploadError('Google Ads 配置不完整') from exc
         except GoogleAdsUploadError:
             raise
         except Exception as exc:
