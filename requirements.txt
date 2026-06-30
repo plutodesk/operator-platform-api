@@ -1,4 +1,5 @@
 google-auth
 google-cloud-storage
+cryptography
 pyjwt
 pytz
