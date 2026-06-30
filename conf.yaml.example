@@ -21,5 +21,12 @@ APPLE_KEY_ID:
 JWT_SECRET: change-me
 
 # Copy to conf.yaml and fill in secrets locally. Do not commit conf.yaml.
+GOOGLE_ADS_CONFIG: {
+  RefreshToken: your-google-ads-oauth-refresh-token,
+  DeveloperToken: your-google-ads-developer-token,
+  ClientSecret: your-google-oauth-client-secret,
+  CustomerId: 8969851272,
+  LoginCustomerId: ''
+}
 GC_KEY: {}
 BUCKET: plutodesk-jigsaw

@@ -23,6 +23,7 @@ define('OAUTH_EMAIL_DOMAIN', default='', help='Allowed login email domain, empty
 define('JWT_SECRET', default='change-me', help="JWT secret")
 define('GC_KEY', default={}, help='Google cloud service account json')
 define('BUCKET', default='', help='GCS bucket name')
+define('GOOGLE_ADS_CONFIG', default={}, help='Google Ads API oauth and account config')
 
 config_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__),
