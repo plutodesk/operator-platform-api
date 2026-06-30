@@ -7,7 +7,18 @@ from operator_platform.service.ads import AdsService
 
 __all__ = [
     'AdsPublishHandler',
+    'AdsPublishOptionsHandler',
 ]
+
+
+class AdsPublishOptionsHandler(BaseHandler):
+
+    async def get(self):
+        self.add_query_argument('product', str, False)
+        result = await AdsService.get_publish_options(
+            product=getattr(self.query, 'product', None),
+        )
+        self.render({'publishOptionList': result})
 
 
 class AdsPublishHandler(BaseHandler):
@@ -16,6 +27,7 @@ class AdsPublishHandler(BaseHandler):
         self.add_json_argument('material_id', str, True)
         self.add_json_argument('version', int, True)
         self.add_json_argument('channel', str, True)
+        self.add_json_argument('platform_config_id', str, False)
         self.add_json_argument('language', str, False)
         self.add_json_argument('size', str, False)
         result = await AdsService.publish_stub(
@@ -23,6 +35,7 @@ class AdsPublishHandler(BaseHandler):
             version=self.json.version,
             channel=self.json.channel,
             operator_id=self.current_user['id'],
+            platform_config_id=getattr(self.json, 'platform_config_id', None),
             language=self.json.language,
             size=self.json.size,
         )

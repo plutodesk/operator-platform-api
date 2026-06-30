@@ -21,6 +21,7 @@ HANDLERS = [
     (r'/cms/v1/logout', LogoutHandler),
 
     (r'/cms/v1/country', CountryHandler),
+    (r'/cms/v1/ads/publish-options', AdsPublishOptionsHandler),
     (r'/cms/v1/ads/publish', AdsPublishHandler),
     (r'/cms/v1/material/publish', MaterialPublishHandler),
     (r'/cms/v1/material', MaterialHandler),
@@ -30,6 +31,13 @@ HANDLERS = [
     (r'/cms/v1/user/options', UserOptionsHandler),
     (r'/cms/v1/user/(\w+)', AdminUserHandler),
     (r'/cms/v1/user', AdminUserHandler),
+    (r'/cms/v1/token-config/options', TokenConfigOptionsHandler),
+    (r'/cms/v1/token-config/channels', TokenConfigChannelsHandler),
+    (r'/cms/v1/token-config/(\w+)/test', TokenConfigTestHandler),
+    (r'/cms/v1/token-config/(\w+)', TokenConfigHandler),
+    (r'/cms/v1/token-config', TokenConfigHandler),
+    (r'/cms/v1/ad-platform-config/(\w+)', AdPlatformConfigHandler),
+    (r'/cms/v1/ad-platform-config', AdPlatformConfigHandler),
 ]
 if options.LOCAL:
     HANDLERS.extend([
