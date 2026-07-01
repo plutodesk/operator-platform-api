@@ -339,32 +339,43 @@ class GoogleAdsService(object):
                 os.unlink(tmp_path)
 
     @classmethod
-    def _upload_material_sync(cls, material, cfg=None):
+    def _file_kind(cls, upload_path):
+        ext = (upload_path or '').rsplit('.', 1)[-1].lower()
+        if ext in ('mp4', 'webm', 'mov', 'm4v'):
+            return 'video'
+        if ext in ('png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'):
+            return 'image'
+        return 'file'
+
+    @classmethod
+    def upload_file(cls, material, upload_path, cfg=None):
         cfg = cls._load_cfg(cfg)
         access_token = cls._refresh_access_token(cfg)
-        material_type = material.material_type or ''
-        upload_path = cls._primary_upload_path(material)
-
-        if material_type == 'video':
-            if not upload_path:
-                raise ParamsError
+        kind = cls._file_kind(upload_path)
+        if kind == 'video':
             data = cls._fetch_upload_bytes(upload_path)
             return cls._upload_video(cfg, access_token, material, upload_path, data)
-
-        if material_type == 'image':
-            if not upload_path:
-                raise ParamsError
+        if kind == 'image':
             data = cls._fetch_upload_bytes(upload_path)
             return cls._upload_image(cfg, access_token, material, upload_path, data)
+        raise GoogleAdsUploadError(f'不支持的文件格式: {upload_path}')
 
-        task_text = ''
-        if isinstance(material.task_description, dict):
-            task_text = (material.task_description.get('text') or '').strip()
-        text = task_text or (material.name or '').strip()
-        if text:
-            return cls._upload_text(cfg, access_token, material, text)
-
-        raise ParamsError
+    @classmethod
+    def _upload_material_sync(cls, material, cfg=None):
+        upload_path = cls._primary_upload_path(material)
+        if not upload_path:
+            material_type = material.material_type or ''
+            if material_type == 'text':
+                cfg = cls._load_cfg(cfg)
+                access_token = cls._refresh_access_token(cfg)
+                task_text = ''
+                if isinstance(material.task_description, dict):
+                    task_text = (material.task_description.get('text') or '').strip()
+                text = task_text or (material.name or '').strip()
+                if text:
+                    return cls._upload_text(cfg, access_token, material, text)
+            raise ParamsError
+        return cls.upload_file(material, upload_path, cfg)
 
     @classmethod
     async def upload_material(cls, material, cfg=None):

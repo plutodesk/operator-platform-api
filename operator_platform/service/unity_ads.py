@@ -89,17 +89,22 @@ class UnityAdsService(object):
         return resp.content
 
     @classmethod
-    def _resolve_creative_spec(cls, material, language=None, size=None):
-        material_type = material.material_type or ''
-        size = (size or material.size or '').strip().lower()
+    def _file_kind(cls, upload_path):
+        ext = (upload_path or '').rsplit('.', 1)[-1].lower()
+        if ext in ('mp4', 'webm', 'mov', 'm4v'):
+            return 'video'
+        if ext in ('png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'):
+            return 'image'
+        return 'file'
+
+    @classmethod
+    def _resolve_creative_spec_for_path(cls, material, upload_path, language=None, size=None):
+        kind = cls._file_kind(upload_path)
         lang = (language or material.language or 'en').strip() or 'en'
         name = (material.name or 'material').strip()
-        upload_path = cls._primary_upload_path(material)
-        if not upload_path:
-            raise ParamsError
         basename = os.path.basename(upload_path) or name
-
-        if material_type == 'video':
+        size = (size or material.size or '').strip().lower()
+        if kind == 'video':
             if size == '16x9':
                 return {
                     'creative_info': {
@@ -119,8 +124,7 @@ class UnityAdsService(object):
                 'file_field': 'videoFile',
                 'upload_path': upload_path,
             }
-
-        if material_type == 'image':
+        if kind == 'image':
             return {
                 'creative_info': {
                     'name': name,
@@ -130,17 +134,26 @@ class UnityAdsService(object):
                 'file_field': 'squareEndCardFile',
                 'upload_path': upload_path,
             }
-
         raise ParamsError
 
     @classmethod
-    def _upload_creative_sync(cls, material, language=None, size=None, cfg=None):
+    def _resolve_creative_spec(cls, material, language=None, size=None):
+        upload_path = cls._primary_upload_path(material)
+        if not upload_path:
+            raise ParamsError
+        return cls._resolve_creative_spec_for_path(
+            material, upload_path, language=language, size=size,
+        )
+
+    @classmethod
+    def upload_file(cls, material, upload_path, language=None, size=None, cfg=None):
         cfg = cls._load_cfg(cfg)
-        spec = cls._resolve_creative_spec(material, language=language, size=size)
+        spec = cls._resolve_creative_spec_for_path(
+            material, upload_path, language=language, size=size,
+        )
         data = cls._fetch_upload_bytes(spec['upload_path'])
-        upload_path = spec['upload_path']
-        basename = os.path.basename(upload_path)
-        mime, _ = mimetypes.guess_type(upload_path)
+        basename = os.path.basename(spec['upload_path'])
+        mime, _ = mimetypes.guess_type(spec['upload_path'])
         mime = mime or 'application/octet-stream'
         url = (
             f"{BASE_URL}/organizations/{cfg['organization_id']}"
@@ -180,16 +193,26 @@ class UnityAdsService(object):
             'language': body.get('language') or spec['creative_info']['language'],
             'type': body.get('type') or '',
             'status': body.get('status') or '',
-            'upload_path': upload_path,
+            'upload_path': spec['upload_path'],
         }
+
+    @classmethod
+    def _upload_creative_sync(cls, material, language=None, size=None, cfg=None):
+        upload_path = cls._primary_upload_path(material)
+        if not upload_path:
+            raise ParamsError
+        return cls.upload_file(material, upload_path, language, size, cfg)
 
     @classmethod
     async def upload_material(cls, material, language=None, size=None, cfg=None):
         try:
             if cfg is None:
                 cfg = await AdsConfigResolver.resolve_unity(product=getattr(material, 'product', None))
+            upload_path = cls._primary_upload_path(material)
+            if not upload_path:
+                raise ParamsError
             result = await asyncio.to_thread(
-                cls._upload_creative_sync, material, language, size, cfg,
+                cls.upload_file, material, upload_path, language, size, cfg,
             )
             logger.info(
                 'Unity creative upload ok material=%s creative_id=%s',
