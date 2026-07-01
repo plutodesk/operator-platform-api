@@ -34,7 +34,7 @@ def make_token(name='Google Ads 默认'):
 
 
 def make_completed(version=1, user_ids=None, material_type='video', upload_path='ads/material/test.jpg',
-                   product='Legacy Jigsaw'):
+                   upload_paths=None, product='Legacy Jigsaw'):
     oid = ObjectId('507f1f77bcf86cd799439011')
     m = MagicMock()
     m._id = oid
@@ -44,7 +44,8 @@ def make_completed(version=1, user_ids=None, material_type='video', upload_path=
     m.production_status = 'completed'
     m.material_type = material_type
     m.upload_path = upload_path
-    m.upload_paths = [upload_path] if upload_path else []
+    paths = upload_paths if upload_paths is not None else ([upload_path] if upload_path else [])
+    m.upload_paths = paths
     m.name = 'Test Material'
     m.task_description = {'text': '', 'images': []}
     m.ads_operator_ids = user_ids or []
@@ -60,6 +61,7 @@ def make_completed(version=1, user_ids=None, material_type='video', upload_path=
             'id': m.id,
             'version': m.version,
             'channel_usage': dict(m.channel_usage),
+            'upload_paths': list(m.upload_paths),
             'platform_publish': dict(m.platform_publish),
             'google_ads_asset': m.google_ads_asset,
             'unity_creative_id': m.unity_creative_id,
@@ -89,8 +91,7 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
                 ), \
                 patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
                 patch(
-                    'operator_platform.service.ads.GoogleAdsService.upload_material',
-                    new_callable=AsyncMock,
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
                     return_value=google_result,
                 ) as upload_mock:
             result = await AdsService.publish(
@@ -99,13 +100,14 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
                 platform_config_id=PLATFORM_CONFIG_ID,
                 language='en', size='9x16',
             )
-        upload_mock.assert_awaited_once_with(m, cfg=google_cfg)
+        upload_mock.assert_called_once_with(m, 'ads/material/test.jpg', cfg=google_cfg)
         self.assertEqual(result['api_status'], 'ok')
         self.assertIsNone(result['conflict'])
         self.assertTrue(result['material']['channel_usage']['google'])
         self.assertEqual(m.google_ads_asset, google_result['resource_name'])
         self.assertEqual(m.platform_publish['google']['name'], platform.name)
         self.assertEqual(m.platform_publish['google']['external_id'], google_result['resource_name'])
+        self.assertEqual(len(m.platform_publish['google']['assets']), 1)
         self.assertEqual(m.version, 3)
 
     async def test_google_requires_platform_config_id(self):
@@ -125,8 +127,7 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
                     return_value=(platform, google_cfg),
                 ), \
                 patch(
-                    'operator_platform.service.ads.GoogleAdsService.upload_material',
-                    new_callable=AsyncMock,
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
                     side_effect=GoogleAdsUploadError('upload failed'),
                 ):
             result = await AdsService.publish(
@@ -135,16 +136,124 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['api_status'], 'error')
         self.assertEqual(result['error_message'], 'upload failed')
         self.assertIsNone(result['material'])
+        self.assertEqual(result['failed'], [{'upload_path': 'ads/material/test.jpg', 'error_message': 'upload failed'}])
         m.save.assert_not_called()
 
-    async def test_reject_duplicate_channel(self):
+    async def test_google_multi_file_all_success(self):
+        m = make_completed(
+            version=2,
+            upload_paths=['ads/material/a.mp4', 'ads/material/b.png'],
+            material_type='video',
+        )
+        platform = make_platform()
+        token = make_token()
+        results = [
+            {'asset_type': 'YOUTUBE_VIDEO', 'resource_name': 'customers/1/assets/v1'},
+            {'asset_type': 'IMAGE', 'resource_name': 'customers/1/assets/i1'},
+        ]
+        google_cfg = {'customer_id': '11111'}
+        with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m), \
+                patch(
+                    'operator_platform.service.ads.AdsConfigResolver.resolve_by_config_id',
+                    new_callable=AsyncMock,
+                    return_value=(platform, google_cfg),
+                ), \
+                patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
+                patch(
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
+                    side_effect=results,
+                ) as upload_mock:
+            result = await AdsService.publish(
+                m.id, 2, 'google', 'u1',
+                platform_config_id=PLATFORM_CONFIG_ID,
+                upload_paths=['ads/material/a.mp4', 'ads/material/b.png'],
+            )
+        self.assertEqual(upload_mock.call_count, 2)
+        self.assertEqual(result['api_status'], 'ok')
+        self.assertEqual(len(result['succeeded']), 2)
+        self.assertEqual(result['failed'], [])
+        assets = m.platform_publish['google']['assets']
+        self.assertEqual(len(assets), 2)
+        self.assertEqual(m.version, 4)
+
+    async def test_google_partial_success(self):
+        m = make_completed(version=2, upload_paths=['a.mp4', 'bad.png'])
+        platform = make_platform()
+        token = make_token()
+        good_result = {
+            'asset_type': 'YOUTUBE_VIDEO',
+            'resource_name': 'customers/1/assets/v1',
+        }
+        google_cfg = {'customer_id': '11111'}
+        with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m), \
+                patch(
+                    'operator_platform.service.ads.AdsConfigResolver.resolve_by_config_id',
+                    new_callable=AsyncMock,
+                    return_value=(platform, google_cfg),
+                ), \
+                patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
+                patch(
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
+                    side_effect=[good_result, GoogleAdsUploadError('bad format')],
+                ):
+            result = await AdsService.publish(
+                m.id, 2, 'google', 'u1',
+                platform_config_id=PLATFORM_CONFIG_ID,
+                upload_paths=['a.mp4', 'bad.png'],
+            )
+        self.assertEqual(result['api_status'], 'partial')
+        self.assertEqual(len(result['succeeded']), 1)
+        self.assertEqual(len(result['failed']), 1)
+        self.assertEqual(len(m.platform_publish['google']['assets']), 1)
+        self.assertEqual(m.version, 3)
+
+    async def test_reject_empty_pending(self):
         m = make_completed(version=2)
-        m.channel_usage = {'google': True, 'facebook': False, 'unity': False}
+        m.platform_publish = {
+            'google': {
+                'assets': [{'upload_path': 'ads/material/test.jpg', 'external_id': 'x'}],
+            },
+        }
         with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m):
             with self.assertRaises(ParamsError):
-                await AdsService.publish(
-                    m.id, 2, 'google', 'u1', platform_config_id=PLATFORM_CONFIG_ID,
-                )
+                await AdsService.publish(m.id, 2, 'google', 'u1', platform_config_id=PLATFORM_CONFIG_ID)
+
+    async def test_allow_republish_pending_files(self):
+        m = make_completed(
+            version=2,
+            upload_paths=['a.mp4', 'b.png'],
+        )
+        m.platform_publish = {
+            'google': {
+                'assets': [{'upload_path': 'a.mp4', 'external_id': 'x', 'asset_type': 'YOUTUBE_VIDEO'}],
+            },
+        }
+        m.channel_usage = {'google': True, 'facebook': False, 'unity': False}
+        platform = make_platform()
+        token = make_token()
+        google_result = {'asset_type': 'IMAGE', 'resource_name': 'customers/1/assets/i1'}
+        google_cfg = {'customer_id': '11111'}
+        with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m), \
+                patch(
+                    'operator_platform.service.ads.AdsConfigResolver.resolve_by_config_id',
+                    new_callable=AsyncMock,
+                    return_value=(platform, google_cfg),
+                ), \
+                patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
+                patch(
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
+                    return_value=google_result,
+                ) as upload_mock:
+            result = await AdsService.publish(
+                m.id, 2, 'google', 'u1',
+                platform_config_id=PLATFORM_CONFIG_ID,
+                upload_paths=['b.png'],
+            )
+        upload_mock.assert_called_once_with(m, 'b.png', cfg=google_cfg)
+        self.assertEqual(result['api_status'], 'ok')
+        self.assertEqual(len(result['succeeded']), 1)
+        self.assertEqual(result['succeeded'][0]['upload_path'], 'b.png')
+        self.assertEqual(len(m.platform_publish['google']['assets']), 2)
 
     async def test_facebook_stub_still_works(self):
         m = make_completed(version=2)
@@ -173,8 +282,7 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
                 ), \
                 patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
                 patch(
-                    'operator_platform.service.ads.UnityAdsService.upload_material',
-                    new_callable=AsyncMock,
+                    'operator_platform.service.ads.UnityAdsService.upload_file',
                     return_value=unity_result,
                 ):
             result = await AdsService.publish(
@@ -198,9 +306,9 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
                     new_callable=AsyncMock,
                     return_value=(platform, unity_cfg),
                 ), \
+                patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=make_token('Unity 默认')), \
                 patch(
-                    'operator_platform.service.ads.UnityAdsService.upload_material',
-                    new_callable=AsyncMock,
+                    'operator_platform.service.ads.UnityAdsService.upload_file',
                     side_effect=UnityAdsUploadError('unity upload failed'),
                 ):
             result = await AdsService.publish(

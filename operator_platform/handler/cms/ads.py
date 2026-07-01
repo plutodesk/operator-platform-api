@@ -30,6 +30,7 @@ class AdsPublishHandler(BaseHandler):
         self.add_json_argument('platform_config_id', str, False)
         self.add_json_argument('language', str, False)
         self.add_json_argument('size', str, False)
+        self.add_json_argument('upload_paths', list, False)
         result = await AdsService.publish_stub(
             material_id=self.json.material_id,
             version=self.json.version,
@@ -38,5 +39,6 @@ class AdsPublishHandler(BaseHandler):
             platform_config_id=getattr(self.json, 'platform_config_id', None),
             language=self.json.language,
             size=self.json.size,
+            upload_paths=getattr(self.json, 'upload_paths', None),
         )
         self.render(result)
