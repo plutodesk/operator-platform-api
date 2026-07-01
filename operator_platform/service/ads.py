@@ -70,6 +70,14 @@ class AdsService(object):
         publish_map = dict(material.platform_publish or {})
         entry = dict(publish_map.get(channel) or {})
         assets = list(entry.get('assets') or [])
+        if not assets:
+            for legacy_path in cls._published_paths(material, channel):
+                if legacy_path and legacy_path != upload_path:
+                    assets.append({
+                        'upload_path': legacy_path,
+                        'external_id': entry.get('external_id') or '',
+                        'asset_type': '',
+                    })
         assets.append({
             'upload_path': upload_path,
             'external_id': external_id,

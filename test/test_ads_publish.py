@@ -218,6 +218,51 @@ class AdsPublishTest(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ParamsError):
                 await AdsService.publish(m.id, 2, 'google', 'u1', platform_config_id=PLATFORM_CONFIG_ID)
 
+    async def test_legacy_republish_seeds_first_path(self):
+        m = make_completed(
+            version=2,
+            upload_paths=['ads/material/a.mp4', 'ads/material/b.png'],
+            material_type='video',
+        )
+        m.platform_publish = {
+            'google': {
+                'external_id': 'customers/1/assets/v1',
+                'platform_config_id': PLATFORM_CONFIG_ID,
+                'name': 'Google - Legacy Jigsaw',
+            },
+        }
+        m.channel_usage = {'google': True, 'facebook': False, 'unity': False}
+        m.google_ads_asset = 'customers/1/assets/v1'
+        platform = make_platform()
+        token = make_token()
+        google_result = {'asset_type': 'IMAGE', 'resource_name': 'customers/1/assets/i1'}
+        google_cfg = {'customer_id': '11111'}
+        with patch('operator_platform.service.ads.Material.find_one', new_callable=AsyncMock, return_value=m), \
+                patch(
+                    'operator_platform.service.ads.AdsConfigResolver.resolve_by_config_id',
+                    new_callable=AsyncMock,
+                    return_value=(platform, google_cfg),
+                ), \
+                patch('operator_platform.service.ads.TokenConfig.find_one', new_callable=AsyncMock, return_value=token), \
+                patch(
+                    'operator_platform.service.ads.GoogleAdsService.upload_file',
+                    return_value=google_result,
+                ) as upload_mock:
+            result = await AdsService.publish(
+                m.id, 2, 'google', 'u1',
+                platform_config_id=PLATFORM_CONFIG_ID,
+                upload_paths=['ads/material/b.png'],
+            )
+        upload_mock.assert_called_once_with(m, 'ads/material/b.png', cfg=google_cfg)
+        self.assertEqual(result['api_status'], 'ok')
+        assets = m.platform_publish['google']['assets']
+        self.assertEqual(len(assets), 2)
+        paths = [a['upload_path'] for a in assets]
+        self.assertIn('ads/material/a.mp4', paths)
+        self.assertIn('ads/material/b.png', paths)
+        legacy = next(a for a in assets if a['upload_path'] == 'ads/material/a.mp4')
+        self.assertEqual(legacy['external_id'], 'customers/1/assets/v1')
+
     async def test_allow_republish_pending_files(self):
         m = make_completed(
             version=2,
